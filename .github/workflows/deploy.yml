@@ -1,15 +1,16 @@
-name: Build and deploy to VM
+name: Build and deploy on-premise
 
 # Runs on every push to main: builds a Docker image, pushes it to GitHub Container Registry,
-# then SSHes into an on-premise/VM host and redeploys via docker compose. This is the pattern
-# the interview gap is about: a self-managed VM target, not a cloud PaaS "git push to deploy."
+# then a self-hosted runner on your own machine pulls it and redeploys via docker compose.
+# On-premise CI/CD, not a cloud PaaS "git push to deploy." To target a remote VM instead,
+# swap the deploy job for an SSH step (appleboy/ssh-action) running the same commands.
 
 on:
   push:
     branches: [main]
 
 env:
-  IMAGE_NAME: ghcr.io/${{ github.repository }}/ticket-ops-api
+  IMAGE_NAME: ghcr.io/dminish/opsticket/ticket-ops-api
 
 jobs:
   build-and-push:
@@ -39,17 +40,22 @@ jobs:
 
   deploy:
     needs: build-and-push
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
+    permissions:
+      contents: read
+      packages: read
     steps:
-      - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          key: ${{ secrets.VM_SSH_KEY }}
-          script: |
-            cd /opt/ticket-ops
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker compose pull api
-            docker compose up -d
-            docker image prune -f
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Deploy on self-hosted runner
+        shell: bash
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf 'NEO4J_URI=bolt://neo4j:7687\nNEO4J_USER=neo4j\nNEO4J_PASSWORD=changeme_password\nOPENAI_API_KEY=%s\n' "$OPENAI_API_KEY" > .env
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          docker compose pull api
+          docker compose up -d
+          docker image prune -f

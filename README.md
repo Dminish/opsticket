@@ -86,22 +86,22 @@ python -m pytest
 ## Wiring up the on-premise CI/CD pipeline
 
 `deploy.yml` builds the Docker image and pushes it to GitHub Container Registry (no extra
-account needed, just the repo's built-in `GITHUB_TOKEN`), then SSHes into a VM and runs
-`docker compose pull && docker compose up -d`. That's a real deploy-to-a-VM pipeline, not a
-cloud PaaS `git push`.
+account needed, just the repo's built-in `GITHUB_TOKEN`), then a **self-hosted runner on your own
+machine** pulls that image and runs `docker compose pull api && docker compose up -d`. Build once,
+deploy the same artifact, on hardware you control, not a cloud PaaS `git push`.
 
-To make it actually run, you need a VM. Cheapest realistic option tonight: a $4-6/month
-DigitalOcean or Linode droplet (Ubuntu, Docker installed). Then in your GitHub repo, add these
-secrets under Settings → Secrets and variables → Actions:
+Setup:
 
-- `VM_HOST` — the droplet's IP address
-- `VM_USER` — the SSH user (often `root` or a configured non-root user)
-- `VM_SSH_KEY` — the private key that matches a public key added to the droplet
+1. Repo Settings → Actions → Runners → New self-hosted runner (Windows). Follow the download and
+   `config.cmd` steps GitHub shows, then start it with `run.cmd`. Docker Desktop and Git (for
+   Git Bash) must be installed on that machine.
+2. Add one secret under Settings → Secrets and variables → Actions: `OPENAI_API_KEY`.
+3. Stop any locally running stack first (`docker compose down`), since the runner's deploy binds
+   the same ports (8000, 7474, 7687).
+4. Push to `main`. Seed the graph once after the first deploy (see "Run it locally").
 
-If you don't want to pay for a box tonight, you can still get full credit for understanding the
-pattern: the workflow file itself, and being able to walk through what each step does and why
-(build once, deploy the same artifact everywhere, no "works on my machine"), is most of what an
-interviewer is actually checking for at this stage.
+To deploy to a remote VM instead, replace the deploy job with an SSH step
+(`appleboy/ssh-action`) running the same three docker commands. Nothing else changes.
 
 ## What to say in the interview
 
