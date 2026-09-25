@@ -1,0 +1,33 @@
+services:
+  neo4j:
+    image: neo4j:5.24-community
+    environment:
+      - NEO4J_AUTH=${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-changeme_password}
+    ports:
+      - "7474:7474"   # browser UI
+      - "7687:7687"   # bolt protocol
+    volumes:
+      - neo4j_data:/data
+    healthcheck:
+      # Uses bash's builtin /dev/tcp instead of wget/curl, since the official Neo4j image
+      # doesn't guarantee either is installed. Checks the bolt port is accepting connections.
+      test: ["CMD-SHELL", "bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/7687' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - NEO4J_URI=bolt://neo4j:7687
+    depends_on:
+      neo4j:
+        condition: service_healthy
+
+volumes:
+  neo4j_data:

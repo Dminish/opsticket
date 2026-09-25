@@ -1,0 +1,7 @@
+legacy_id,subject,description,logged_by,logged_at
+1001,Monitor flickering,"Second monitor on desk 12 flickers randomly, replaced HDMI cable no change",jsmith,2024-11-02
+1002,Cannot access shared drive,"Login to shared drive fails with permission denied since password reset",jsmith,2024-11-03
+1003,Outlook calendar not syncing,"Calendar invites not syncing across devices after mailbox migration",agreen,2024-11-05
+1004,Wifi drops in conference room B,"Wifi connectivity drops every few minutes during meetings in conf room B",agreen,2024-11-06
+1005,Printer queue stuck,"Print jobs stuck in queue on 3rd floor printer, restarted spooler no fix",bwong,2024-11-07
+1006,Locked out after MFA reset,"Account locked, MFA re-enrollment did not clear the lockout",bwong,2024-11-08

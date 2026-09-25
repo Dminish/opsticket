@@ -1,0 +1,55 @@
+name: Build and deploy to VM
+
+# Runs on every push to main: builds a Docker image, pushes it to GitHub Container Registry,
+# then SSHes into an on-premise/VM host and redeploys via docker compose. This is the pattern
+# the interview gap is about: a self-managed VM target, not a cloud PaaS "git push to deploy."
+
+on:
+  push:
+    branches: [main]
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository }}/ticket-ops-api
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.VM_SSH_KEY }}
+          script: |
+            cd /opt/ticket-ops
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            docker compose pull api
+            docker compose up -d
+            docker image prune -f
