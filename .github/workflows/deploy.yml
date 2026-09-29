@@ -52,7 +52,6 @@ jobs:
         shell: powershell
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           Set-Content -Path .env -Encoding ascii -Value @(
             "NEO4J_URI=bolt://neo4j:7687",
@@ -60,8 +59,7 @@ jobs:
             "NEO4J_PASSWORD=changeme_password",
             "OPENAI_API_KEY=$env:OPENAI_API_KEY"
           )
-          $env:GHCR_TOKEN | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          docker logout ghcr.io
           docker compose pull api
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           docker compose up -d
