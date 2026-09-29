@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ticket Ops</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; }
+  h1 { font-size: 1.4rem; }
+  label { display: block; margin-top: 1rem; font-weight: 600; }
+  input, textarea { width: 100%; padding: 0.5rem; font: inherit; box-sizing: border-box; }
+  textarea { height: 5rem; }
+  button { margin-top: 1rem; padding: 0.5rem 1.2rem; font: inherit; cursor: pointer; }
+  #result { margin-top: 1.5rem; padding: 1rem; border-radius: 6px; background: #f0f3f7; display: none; }
+  #result.error { background: #fbe9e7; }
+  .badge { display: inline-block; padding: 0.15rem 0.5rem; border-radius: 4px; background: #dde6f0; margin-right: 0.4rem; font-size: 0.85rem; }
+  ul { padding-left: 1.2rem; }
+</style>
+</head>
+<body>
+  <h1>Submit an IT ticket</h1>
+  <form id="ticket-form">
+    <label for="subject">Subject</label>
+    <input id="subject" required maxlength="200">
+    <label for="description">Description</label>
+    <textarea id="description" required></textarea>
+    <button type="submit">Submit</button>
+  </form>
+  <div id="result"></div>
+
+  <script>
+    const form = document.getElementById("ticket-form");
+    const result = document.getElementById("result");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      result.className = "";
+      result.style.display = "block";
+      result.textContent = "Classifying…";
+
+      const subject = document.getElementById("subject").value;
+      const description = document.getElementById("description").value;
+
+      try {
+        const res = await fetch("/tickets", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ subject, description }),
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.detail ? JSON.stringify(err.detail) : res.statusText);
+        }
+        const ticket = await res.json();
+
+        let similarHtml = "";
+        const simRes = await fetch(`/tickets/${ticket.id}/similar`);
+        if (simRes.ok) {
+          const similar = await simRes.json();
+          if (similar.length) {
+            similarHtml = "<p><strong>Similar tickets:</strong></p><ul>" +
+              similar.map(s => `<li>#${s.id} ${s.subject} (score ${s.score.toFixed(2)})</li>`).join("") +
+              "</ul>";
+          }
+        }
+
+        result.innerHTML = `
+          <p>Ticket #${ticket.id} created.</p>
+          <span class="badge">category: ${ticket.category}</span>
+          <span class="badge">routed to: ${ticket.resolver}</span>
+          ${similarHtml}
+        `;
+        form.reset();
+      } catch (err) {
+        result.className = "error";
+        result.textContent = "Error: " + err.message;
+      }
+    });
+  </script>
+</body>
+</html>

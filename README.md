@@ -73,6 +73,10 @@ pip install -r requirements.txt
 python -m scripts.ingest_archive data/archive/tickets.csv
 ```
 
+Or use the minimal frontend — a plain HTML/JS page (`app/static/index.html`) served by FastAPI
+itself, no separate frontend stack — at `http://localhost:8000/`. Submits a ticket, shows the
+category/resolver it was routed to, and any similar tickets.
+
 Interactive API docs (FastAPI gives you this for free, worth mentioning in the interview):
 `http://localhost:8000/docs`
 

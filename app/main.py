@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.staticfiles import StaticFiles
 
 from app import graph_client
 from app.models import ResolverTicket, SimilarTicket, TicketCreate, TicketOut
@@ -51,3 +52,7 @@ def read_similar_tickets(ticket_id: int):
 @app.get("/resolvers/{resolver_name}/tickets", response_model=list[ResolverTicket])
 def read_tickets_for_resolver(resolver_name: str):
     return graph_client.tickets_for_resolver(resolver_name)
+
+
+# Registered last so it only catches requests the routes above didn't match.
+app.mount("/", StaticFiles(directory="app/static", html=True), name="static")
