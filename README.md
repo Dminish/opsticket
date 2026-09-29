@@ -13,14 +13,14 @@ into interview answers, this isn't a generic tutorial project.
 | LLM pipeline | `app/triage.py` — LangChain + OpenAI (`gpt-4o-mini`) with structured output picks the category; routing to a resolver is a deterministic lookup, not the model's job |
 | Data pipeline / ETL | `scripts/ingest_archive.py`, `data/archive/tickets.csv` — bulk-loads a legacy-shaped CSV export into the graph via the same classify pipeline the API uses |
 | Graph databases | `graph/schema.cypher`, `graph/seed_data.cypher`, `graph/queries.cypher`, `app/graph_client.py` — tickets, categories and resolvers modelled as a graph, not a vector index |
-| On-premise CI/CD | `.github/workflows/deploy.yml` — builds a Docker image and deploys it to a VM over SSH, not a PaaS `git push` |
+| On-premise CI/CD | `.github/workflows/deploy.yml` — builds a Docker image and deploys it via a self-hosted GitHub Actions runner, not a PaaS `git push` |
 
 ## Architecture
 
 ```
 Ticket (POST /tickets)
    │
-   ├── triage.py classifies it (category + resolver)   <-- swap this for your LangGraph/Ollama pipeline
+   ├── triage.py classifies it (category + resolver) via LangChain + OpenAI
    │
    └── graph_client.py writes it into Neo4j as a graph:
 
@@ -29,11 +29,11 @@ Ticket (POST /tickets)
    (Ticket)-[:SIMILAR_TO {score}]->(Ticket)
 ```
 
-The `triage.py` classifier is intentionally a simple keyword-matcher right now, a placeholder.
-The interview-relevant point isn't the classifier, it's the FastAPI/graph/CI-CD scaffolding around it.
-If you have time, swap it for a trimmed-down version of your actual LangGraph + Ollama pipeline from
-the triage agent project, that turns this from "a demo I built to prep" into "an extension of my
-real production project," which is a stronger interview story.
+`triage.py` uses an LLM (via LangChain + OpenAI) to pick the category from a fixed vocabulary;
+routing that category to a resolver queue is a deterministic lookup, not something the model
+decides — same split as a real triage agent (classify, then route), just OpenAI here instead of
+a self-hosted model, and wired into a FastAPI endpoint / graph-backed store instead of a
+notebook or chat UI.
 
 ## Run it locally (tonight, no VM needed yet)
 
