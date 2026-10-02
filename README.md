@@ -2,21 +2,13 @@
 
 Ticket Ops is an end-to-end AI-powered IT ticket triage service built with FastAPI, LangChain, OpenAI, and Neo4j. It classifies incoming IT issues into a controlled set of categories, deterministically routes them to support teams, stores ticket relationships in a graph, and surfaces similar historical tickets. It ships with a Docker Compose setup and a CI/CD pipeline that deploys to a self-hosted runner.
 
+<p align="center">
+  <img src="docs/demo.gif" alt="Submitting a ticket in the Ticket Ops UI: it is classified, routed, and matched to a similar ticket" width="420">
+</p>
+
 ## How it works
 
-```
-Client (browser or curl)
-   │  POST /tickets
-   ▼
-FastAPI ── triage.py ── LangChain + OpenAI picks a category
-   │
-   ▼
-graph_client.py ── writes to Neo4j:
-
-   (Ticket)-[:BELONGS_TO]->(Category)
-   (Ticket)-[:ROUTED_TO]->(Resolver)
-   (Ticket)-[:SIMILAR_TO {score}]->(Ticket)
-```
+![Ticket Ops architecture: request path from client through FastAPI, the LangChain classifier and Neo4j, plus the CI/CD delivery pipeline](docs/architecture.svg)
 
 1. A ticket (subject + description) arrives at `POST /tickets`.
 2. `app/triage.py` asks the model for a category and validates the answer against a fixed enum.
@@ -54,6 +46,18 @@ Because the model can only return a member of the enum, it cannot invent a categ
 - **Archive ingest** (`scripts/ingest_archive.py`): bulk-loads a CSV export of historical tickets through the same classify-and-store pipeline the API uses. Extra legacy columns are ignored.
 - **Frontend** (`app/static/index.html`): a single HTML/JS page served by FastAPI at `/`. Submit a ticket, see its category and resolver, and see similar tickets with their scores. No build step and no framework.
 - **CI/CD** (`.github/workflows/deploy.yml`): builds a Docker image, pushes it to GitHub Container Registry, and deploys it with a self-hosted GitHub Actions runner.
+
+## Screenshots
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/images/form.png" alt="Ticket submission form" width="300"><br>Submit a ticket</td>
+    <td align="center"><img src="docs/images/result.png" alt="Ticket classified as network, routed to network-team, with a similar ticket at 52 percent" width="300"><br>Classified, routed, and matched</td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2"><img src="docs/images/swagger.png" alt="Swagger UI listing the Ticket Ops endpoints" width="620"><br>Interactive API docs at <code>/docs</code></td>
+  </tr>
+</table>
 
 ## Run it locally
 
