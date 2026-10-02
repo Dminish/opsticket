@@ -442,7 +442,7 @@
         }
         const ticket = await res.json();
 
-        let similarHtml = `<p class="empty-note">No similar tickets yet — this looks like the first of its kind.</p>`;
+        let similarHtml = `<p class="empty-note">No close matches among existing tickets yet.</p>`;
         const simRes = await fetch(`/tickets/${ticket.id}/similar`);
         if (simRes.ok) {
           const similar = await simRes.json();
